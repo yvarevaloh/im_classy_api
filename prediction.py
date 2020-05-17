@@ -12,6 +12,7 @@ import skimage.io as image_io
 from constants import FRAMES_KEY
 from constants import MAX_FRAMES
 from constants import VALID_EXTENSIONS
+from constants import PROJECT_LOCATION
 from errors import ExceededFramesNumberError
 from errors import ImageExtensionError
 from errors import MissingFramesKeyError
@@ -70,7 +71,7 @@ class Classify(Resource):
 
     @staticmethod
     def classify(images):
-        model = joblib.load(r"trained_models\svm_model_256.pkl")
+        model = joblib.load(PROJECT_LOCATION+r"/trained_models/svm_model_256.pkl")
         l_detection = LivenessDetectionClassifier(model=model)
         classification = l_detection.classify(images)
         return classification
