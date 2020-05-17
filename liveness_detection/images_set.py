@@ -56,16 +56,22 @@ class ImagesSet:
         joblib.dump(data, os.path.join(location, data_name))
         joblib.dump(labels, os.path.join(location, labels_name))
 
-    @classmethod
-    def get_lbp_feature(cls, images_paths, lbp_type, lbp=None):
+    @staticmethod
+    def get_images_from_path(images_paths):
         if isinstance(images_paths, str):
             images_paths = [images_paths]
+        return[image_io.imread(path) for path in images_paths]
+
+    @classmethod
+    def get_lbp_feature(cls, images, lbp_type, images_paths=None, lbp=None):
         features = []
-        for path in images_paths:
-            image = Image(lbp)
-            feature = image.get_lbp_image(path)
+        if images_paths:
+            images.extend(cls.get_images_from_path(images_paths))
+        for image in images:
+            lbp_image = Image(lbp)
+            feature = lbp_image.get_lbp_image(image)
             if lbp_type == "histogram":
-                feature = image.get_lbp_histogram(feature)
+                feature = lbp_image.get_lbp_histogram(feature)
             features.append(feature)
         return features
 

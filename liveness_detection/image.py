@@ -15,11 +15,11 @@ class Image:
         self.histogram_format = histogram_format
 
     @staticmethod
-    def pre_process_image(image_path):
-        return rgb2gray(image_io.imread(image_path))
+    def pre_process_image(image):
+        return rgb2gray(image)
 
-    def get_lbp_image(self, image_path):
-        image = self.pre_process_image(image_path)
+    def get_lbp_image(self, image):
+        image = self.pre_process_image(image)
         return self.lbp.get_image(image)
 
     def get_lbp_histogram(self, lbp_image):

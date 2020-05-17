@@ -1,7 +1,7 @@
 from flask import Flask
 from flask_restful import Api
 from flask_cors import CORS
-from prediction import Prediction
+from prediction import Classify
 from errors import errors
 
 
@@ -10,7 +10,7 @@ api = Api(app, errors=errors)
 cors = CORS(app, resources={r"/classify/*": {"origins": "*"}})
 
 
-api.add_resource(Prediction, '/classify/')
+api.add_resource(Classify, '/classify/')
 
 
 @app.route('/')

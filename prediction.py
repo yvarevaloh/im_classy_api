@@ -1,22 +1,29 @@
-from flask_restful import Resource, reqparse
-from flask import jsonify
-from PIL import Image
 import io
-from os.path import splitext
-from copy import deepcopy
 from base64 import b64decode
-from constants import FRAMES_KEY, MAX_FRAMES, VALID_EXTENSIONS
-from errors import MissingFramesKeyError, ExceededFramesNumberError, ImageExtensionError, ImageExtensionError
+from copy import deepcopy
+from os.path import splitext
 
-from liveness_detection.image import Image
+import joblib
+from flask import jsonify
+from flask_restful import Resource
+from flask_restful import reqparse
+import skimage.io as image_io
+
+from constants import FRAMES_KEY
+from constants import MAX_FRAMES
+from constants import VALID_EXTENSIONS
+from errors import ExceededFramesNumberError
+from errors import ImageExtensionError
+from errors import MissingFramesKeyError
+from liveness_detection.liveness_detection_classifier import LivenessDetectionClassifier
 
 mock_response = {
-    "type": "digital",
-    "score": 9.0,
+    "type": "",
+    "score": 1.0,
     "predictions": {
-        "real": 0.56,
+        "real": 0.0,
         "printed": 0.0,
-        "digital": 9.0
+        "digital": 0.0
     },
     "version": "1.0",
     "responseCode": "200",
@@ -24,7 +31,7 @@ mock_response = {
 }
 
 
-class Prediction(Resource):
+class Classify(Resource):
     @staticmethod
     def create_response(**args):
         response = deepcopy(mock_response)
@@ -55,30 +62,40 @@ class Prediction(Resource):
     @staticmethod
     def validate_errors(content, type_):
         if type_ == "image":
-            error = Prediction.get_binary_request_errors(content)
+            error = Classify.get_binary_request_errors(content)
         elif type_ == "binary":
-            error = Prediction.get_binary_request_errors(content)
+            error = Classify.get_binary_request_errors(content)
         else:
             raise ImageExtensionError("error type_ should be image or binary")
+
+    @staticmethod
+    def classify(images):
+        model = joblib.load(r"trained_models\svm_model_256.pkl")
+        l_detection = LivenessDetectionClassifier(model=model)
+        classification = l_detection.classify(images)
+        return classification
 
     def post(self):
         images = []
         request = reqparse.request
         if request.data:
             "only one file"
-            images.append(Image.open(io.BytesIO(request.data)))
+            images.append(image_io.imread(io.BytesIO(request.data)))
             return mock_response
         if request.files:
             self.get_binary_request_errors(request.files)
             request_images = request.files.getlist(FRAMES_KEY)
-            images.extend([Image.open(image) for image in request_images])
+            images.extend([image_io.imread(image) for image in request_images])
         if request.form:
             self.get_binary_request_errors(request.form)
             request_images = request.form.getlist(FRAMES_KEY)
-            images.extend([Image.open(io.BytesIO(b64decode(image))) for image in request_images])
+            images.extend([image_io.imread(b64decode(image), plugin="imageio") for image in request_images])
 
+        classification = self.classify(images)
         response = self.create_response(**{
+            "type": classification[0],
             "responseMessage": "All images processed.",
             "imagesProcessed": len(images)
         })
+
         return response
